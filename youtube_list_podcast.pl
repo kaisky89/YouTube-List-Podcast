@@ -44,6 +44,29 @@ get "/list/:list_id" => sub {
     $self->render('list', format => 'rss');
 };
 
+get "/user/:user_id" => sub {
+    my $self = shift;
+    my $uri = URI->new("http://gdata.youtube.com/feeds/api/users/" . $self->stash->{user_id}. "/uploads");
+    $uri->query_form( alt => 'json', v => '2' );
+    my $res = $ua->get($uri);
+    die $res->status_line if $res->is_error;
+    my $data = decode_json($res->decoded_content);
+    $self->stash->{title} = $data->{feed}{title}{'$t'};
+    my $results = [];
+    for my $entry (@{$data->{feed}{entry}}) {
+        push @$results, {
+            id => $entry->{'media$group'}{'yt$videoid'}{'$t'},
+            title => $entry->{title}{'$t'},
+            date => $entry->{published}{'$t'},
+            image_url => $entry->{'media$group'}{'media$thumbnail'}[1]{'url'},
+            description => $entry->{'media$group'}{'media$description'}{'$t'},
+        };
+    }
+    $self->stash->{entries} = $results;
+    $self->res->headers->content_type('application/xml');
+    $self->render('user', format => 'rss');
+};
+
 get "/video/:video_id\.mp4" => sub {
     my $self = shift;
     my $video_url = $yd->get_video_url($self->stash->{video_id}, fmt => 18);
@@ -81,6 +104,23 @@ __DATA__
 <item>
 <title><%= $entry->{title} %></title>
 <description><![CDATA[<%= $entry->{description} %>]]></description>
+<link>http://www.youtube.com/watch?v=<%= $entry->{id} %></link>
+<enclosure url="<%= $self->req->url->base %>/video/<%= $entry->{id} %>.mp4" type="video/mp4"/>
+</item>
+% }
+</channel>
+</rss>
+
+@@ user.rss.ep
+<rss version="2.0">
+<channel>
+<title><%= $title %></title>
+<link><%= $self->req->url->base %>user/<%= $user_id %></link>
+% for my $entry (@$entries) {
+<item>
+<title><%= $entry->{title} %></title>
+<description><![CDATA[<%= $entry->{description} %>]]></description>
+<pubDate><%= $entry->{date} %></pubDate>
 <link>http://www.youtube.com/watch?v=<%= $entry->{id} %></link>
 <enclosure url="<%= $self->req->url->base %>/video/<%= $entry->{id} %>.mp4" type="video/mp4"/>
 </item>

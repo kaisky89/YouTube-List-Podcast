@@ -112,16 +112,16 @@ __DATA__
 </rss>
 
 @@ user.rss.ep
-<rss version="2.0">
+<rss xmlns:itunes="http://www.itunes.com/dtds/podcast-1.0.dtd" version="2.0">
 <channel>
 <title><%= $title %></title>
 <link><%= $self->req->url->base %>user/<%= $user_id %></link>
 % for my $entry (@$entries) {
 <item>
 <title><%= $entry->{title} %></title>
-<description><![CDATA[<%= $entry->{description} %>]]></description>
 <pubDate><%= $entry->{date} %></pubDate>
 <link>http://www.youtube.com/watch?v=<%= $entry->{id} %></link>
+<itunes:image href="<%= $entry->{image_url} %>" />
 <enclosure url="<%= $self->req->url->base %>/video/<%= $entry->{id} %>.mp4" type="video/mp4"/>
 </item>
 % }
